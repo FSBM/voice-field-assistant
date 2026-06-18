@@ -82,7 +82,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <a
-            href="https://github.com"
+            href="https://github.com/FSBM/voice-field-assistant"
             target="_blank"
             rel="noreferrer"
             className="group mt-px flex items-center gap-[10px] rounded-sm px-[9px] py-[6px] text-[13.5px] font-[450] tracking-[-0.005em] text-ink-2 transition-colors hover:bg-surface-1 hover:text-ink-1"
