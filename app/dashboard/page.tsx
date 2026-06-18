@@ -64,7 +64,10 @@ export default function DashboardPage() {
           if (active) setMode("live");
           load();
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (active && status === "SUBSCRIBED") setMode("live");
+          else if (active && (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")) setMode("polling");
+        });
       removeChannel = () => supabase.removeChannel(channel);
     } catch {
       removeChannel = undefined;
