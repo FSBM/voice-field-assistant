@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #08080a;
+  --color-canvas: #0f0f10;
+  --color-inset: #1a1a1f;
+  --color-surface-1: #1f1f20;
+  --color-surface-2: #26262c;
+  --color-surface-3: #2d2d34;
+  --color-surface-hi: #36363e;
+  --color-paper: #ffffff;
+
+  --color-line-1: rgba(255, 255, 255, 0.045);
+  --color-line-2: rgba(255, 255, 255, 0.075);
+  --color-line-3: rgba(255, 255, 255, 0.12);
+  --color-line-4: rgba(255, 255, 255, 0.2);
+
+  --color-ink-1: #ffffff;
+  --color-ink-2: rgba(255, 255, 255, 0.66);
+  --color-ink-3: rgba(255, 255, 255, 0.42);
+  --color-ink-4: rgba(255, 255, 255, 0.26);
+  --color-ink-5: rgba(255, 255, 255, 0.14);
+
+  --color-chip-bg: rgba(255, 255, 255, 0.04);
+  --color-chip-bg-hi: rgba(255, 255, 255, 0.07);
+  --color-chip-line: rgba(255, 255, 255, 0.08);
+  --color-chip-ink: #d8d8d8;
+
+  --color-healthy: #6ed68b;
+  --color-healthy-bg: rgba(110, 214, 139, 0.1);
+  --color-healthy-line: rgba(110, 214, 139, 0.26);
+  --color-healthy-fill: rgba(110, 214, 139, 0.18);
+
+  --color-recovery: #ecc556;
+  --color-recovery-bg: rgba(236, 197, 86, 0.1);
+  --color-recovery-line: rgba(236, 197, 86, 0.3);
+  --color-recovery-fill: rgba(236, 197, 86, 0.18);
+
+  --color-severe: #f06a5b;
+  --color-severe-bg: rgba(240, 106, 91, 0.1);
+  --color-severe-line: rgba(240, 106, 91, 0.28);
+  --color-severe-fill: rgba(240, 106, 91, 0.18);
+
+  --color-info: #6c9bf5;
+  --color-info-bg: rgba(108, 155, 245, 0.1);
+  --color-info-line: rgba(108, 155, 245, 0.28);
+  --color-info-fill: rgba(108, 155, 245, 0.18);
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+
+  --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.005em;
+}
+
+code,
+kbd,
+pre,
+samp,
+.font-mono {
+  font-family: var(--font-sans);
+}
+
+.uppercase {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-line-3);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.82); }
+}
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.bar-grow {
+  transform-origin: left;
+  animation: bar-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.view-in {
+  animation: view-in 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot, .bar-grow, .view-in { animation: none; }
+}

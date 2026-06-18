@@ -1,0 +1,43 @@
+{
+  "name": "voice-field-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "build:kb": "tsx scripts/build-kb.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.83",
+    "@ai-sdk/groq": "^3.0.42",
+    "@huggingface/transformers": "^4.2.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "ai": "^6.0.207",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dexie": "^4.4.4",
+    "dexie-react-hooks": "^4.4.0",
+    "groq-sdk": "^1.2.1",
+    "lucide-react": "^1.20.0",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.2.9",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.3.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
+  }
+}

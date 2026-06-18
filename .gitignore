@@ -1,0 +1,14 @@
+# Files that should never be committed.
+
+node_modules
+.next
+out
+build
+.env
+.env.local
+.env*.local
+.DS_Store
+*.log
+npm-debug.log*
+.vercel
+next-env.d.ts
