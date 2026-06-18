@@ -3,7 +3,7 @@ import { withModelFallback } from "@/lib/llm";
 import { hasAnyLlm } from "@/lib/env";
 import { ANSWER_SYSTEM } from "@/lib/prompts";
 import { embed } from "@/lib/embeddings";
-import { searchScored, type ScoredChunk } from "@/lib/kb/store";
+import { searchScored, lexicalSearch, type ScoredChunk } from "@/lib/kb/store";
 
 export interface RagMatch {
   source: string;
@@ -35,8 +35,13 @@ function topChunkAnswer(scored: ScoredChunk[]): string {
 }
 
 export async function answerQuestion(question: string): Promise<RagAnswer> {
-  const queryVector = await embed(question);
-  const scored = await searchScored(queryVector, 6);
+  let scored: ScoredChunk[];
+  try {
+    const queryVector = await embed(question, "RETRIEVAL_QUERY");
+    scored = await searchScored(queryVector, 6);
+  } catch {
+    scored = await lexicalSearch(question, 6);
+  }
   const sources = Array.from(new Set(scored.map((item) => item.chunk.source)));
   const matches: RagMatch[] = scored.map((item) => ({
     source: item.chunk.source,

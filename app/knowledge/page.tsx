@@ -120,7 +120,7 @@ export default function KnowledgePage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 md:px-6">
         <p className="max-w-2xl text-[12.5px] leading-relaxed text-ink-2">
           The assistant answers questions from this knowledge base. Documents are split into chunks,
-          each embedded into a {stats?.dimensions ?? 384}-dimensional vector, and retrieved by cosine
+          each embedded into a {stats?.dimensions ?? 768}-dimensional vector, and retrieved by cosine
           similarity. Add your own knowledge below by typing, uploading a Markdown file, or speaking it.
         </p>
 
@@ -128,7 +128,7 @@ export default function KnowledgePage() {
           <StatCard className="bg-surface-1" label="Sources" value={stats?.sources ?? 0} suffix="docs" />
           <StatCard className="bg-surface-1" label="Chunks" value={stats?.chunks ?? 0} suffix="embedded" />
           <StatCard className="bg-surface-1" label="Added by you" value={stats?.addedChunks ?? 0} accent={stats?.addedChunks ? "text-info" : "text-ink-1"} live={Boolean(stats?.addedChunks)} />
-          <StatCard className="bg-surface-1" label="Dimensions" value={stats?.dimensions ?? 384} suffix="per vector" />
+          <StatCard className="bg-surface-1" label="Dimensions" value={stats?.dimensions ?? 768} suffix="per vector" />
         </div>
 
         <section className="grid gap-4 lg:grid-cols-2">
@@ -184,7 +184,7 @@ export default function KnowledgePage() {
               </div>
               <div className="bg-surface-1 px-3 py-2.5">
                 <div className="text-[11px] text-ink-3">Model</div>
-                <div className="mt-1 truncate text-[12.5px] font-medium text-ink-1">MiniLM-L6</div>
+                <div className="mt-1 truncate text-[12.5px] font-medium text-ink-1">Gemini</div>
               </div>
             </div>
             <ol className="flex flex-col gap-2">
@@ -237,7 +237,7 @@ export default function KnowledgePage() {
                       </div>
                       <div className="mt-2 flex items-center gap-3">
                         <Fingerprint values={chunk.fingerprint} />
-                        <span className="text-[10px] text-ink-4">embedding fingerprint (first 24 of {stats?.dimensions ?? 384})</span>
+                        <span className="text-[10px] text-ink-4">embedding fingerprint (first 24 of {stats?.dimensions ?? 768})</span>
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-[11.5px] leading-relaxed text-ink-3">
                         {chunk.text.length > 320 ? `${chunk.text.slice(0, 320).trim()}...` : chunk.text}

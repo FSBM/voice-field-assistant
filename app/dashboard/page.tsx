@@ -10,11 +10,17 @@ import StatusIcon from "@/components/ui/status-icon";
 import Tag, { type Tone } from "@/components/ui/tag";
 import Waterfall, { type WaterfallRow } from "@/components/ui/waterfall";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import type { WorkOrderRow } from "@/lib/types";
+import type { WorkOrderRow, ActivityRow } from "@/lib/types";
 
 type Mode = "connecting" | "live" | "polling";
 
 const sevTone: Record<string, Tone> = { low: "healthy", medium: "recovery", high: "severe", critical: "severe" };
+
+const kindLabel: Record<string, { label: string; tone: Tone }> = {
+  note: { label: "Inspection", tone: "info" },
+  query: { label: "Question", tone: "healthy" },
+  work_order: { label: "Command", tone: "recovery" },
+};
 
 function clockTime(iso: string) {
   const d = new Date(iso);
@@ -24,6 +30,7 @@ function clockTime(iso: string) {
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<WorkOrderRow[]>([]);
+  const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [mode, setMode] = useState<Mode>("connecting");
 
   useEffect(() => {
@@ -32,9 +39,14 @@ export default function DashboardPage() {
 
     async function load() {
       try {
-        const res = await fetch("/api/work-orders", { cache: "no-store" });
-        const data = await res.json();
-        if (active && data?.orders) setOrders(data.orders as WorkOrderRow[]);
+        const [woRes, actRes] = await Promise.all([
+          fetch("/api/work-orders", { cache: "no-store" }),
+          fetch("/api/activity", { cache: "no-store" }),
+        ]);
+        const wo = await woRes.json().catch(() => null);
+        const act = await actRes.json().catch(() => null);
+        if (active && wo?.orders) setOrders(wo.orders as WorkOrderRow[]);
+        if (active && act?.activity) setActivity(act.activity as ActivityRow[]);
       } catch {
         return;
       }
@@ -149,6 +161,22 @@ export default function DashboardPage() {
             )}
           </Panel>
         </section>
+
+        <Panel meta="Voice transcripts" sub="What field workers said, transcribed" bodyClassName="p-0">
+          {activity.length === 0 ? (
+            <p className="px-4 py-5 text-[12px] text-ink-3">No voice notes yet.</p>
+          ) : (
+            <ul className="divide-y divide-line-1">
+              {activity.map((item) => (
+                <li key={item.id} className="flex items-start gap-3 px-4 py-3">
+                  <Tag tone={kindLabel[item.kind]?.tone ?? "neutral"}>{kindLabel[item.kind]?.label ?? item.kind}</Tag>
+                  <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-ink-2">{item.transcript || "—"}</p>
+                  <span className="shrink-0 text-[10.5px] tabular-nums text-ink-4">{clockTime(item.created_at)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
 
         {criticalOpen.length > 0 && (
           <Panel

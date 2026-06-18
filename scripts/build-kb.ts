@@ -4,6 +4,14 @@ import { fileURLToPath } from "node:url";
 import { embed } from "../lib/embeddings";
 import { chunkDocument } from "../lib/kb/chunk";
 
+for (const file of [".env", ".env.local"]) {
+  try {
+    process.loadEnvFile(file);
+  } catch {
+    void 0;
+  }
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const knowledgeDir = join(here, "..", "knowledge");
 const outFile = join(here, "..", "lib", "kb", "vectors.json");

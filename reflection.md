@@ -21,8 +21,10 @@ stepping on the others.
 Choosing free, fast models mattered more than we expected. Groq's Whisper returns a transcript
 in a few hundred milliseconds, and the small Llama model answers questions quickly enough that
 the spoken reply feels immediate, which is what the three-second metric is really about.
-Running the embedding model locally on the server meant the retrieval step needed no API key
-and no quota at all.
+We first ran the embedding model locally on the server, but that native runtime cannot load on
+Vercel's serverless functions, so we moved retrieval to Google's free Gemini embedding API over
+plain HTTP. It was a sharp lesson that a dependency which "works on my machine" can quietly break
+the one environment that actually matters — the deployed one.
 
 ## What the GIGO principle taught us
 

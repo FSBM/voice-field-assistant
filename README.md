@@ -17,7 +17,7 @@ Six capabilities, each mapped to a part of the app:
 | 3 | **Voice query answering** | `/api/ask` | Answers spoken questions from the knowledge base in ~1.5s, grounded in retrieved chunks. |
 | 4 | **Agentic work orders** | `/api/agent` | Create / update / close work orders by voice through a tool-calling agent. |
 | 5 | **Offline capability** | Field worker | Notes queue in the browser (IndexedDB) and sync automatically the moment you reconnect. |
-| 6 | **Supervisor dashboard** | `/dashboard` | Live work-order feed, severity chart, and exception alerts. |
+| 6 | **Supervisor dashboard** | `/dashboard` | Live work-order feed, severity chart, **voice-note transcripts**, and exception alerts. |
 
 Plus a **Knowledge** page to manage the RAG knowledge base (add manuals by typing, uploading, or speaking — and see them embedded), a **Help** page, and a **Sample data** page for a reproducible demo.
 
@@ -44,7 +44,7 @@ flowchart LR
   subgraph Services["AI & data — free tiers"]
     GR["Groq<br/>Whisper + Llama / gpt-oss"]
     GE["Gemini<br/>failover"]
-    TF["Transformers.js<br/>MiniLM embeddings"]
+    TF["Gemini<br/>embeddings (768-dim)"]
     DB[("Supabase<br/>Postgres + Realtime")]
   end
 
@@ -77,7 +77,7 @@ flowchart TD
   end
   subgraph two["2 · Ask a question (RAG)"]
     direction LR
-    b1["Ask"] --> b2["Whisper<br/>transcribe"] --> b3["MiniLM embed<br/>+ cosine top-6"] --> b4["Llama<br/>grounded answer"]
+    b1["Ask"] --> b2["Whisper<br/>transcribe"] --> b3["Gemini embed<br/>+ cosine top-6"] --> b4["Llama<br/>grounded answer"]
   end
   subgraph three["3 · Voice command (agent)"]
     direction LR
@@ -96,7 +96,7 @@ The assistant only answers from the knowledge base, so retrieval quality is ever
 ```mermaid
 flowchart LR
   subgraph Ingest["Ingest (build time + runtime)"]
-    DOC["Markdown doc"] --> CH["Chunk<br/>heading-anchored<br/>+ size-bounded<br/>+ overlap"] --> EM["MiniLM embed<br/>384-dim"]
+    DOC["Markdown doc"] --> CH["Chunk<br/>heading-anchored<br/>+ size-bounded<br/>+ overlap"] --> EM["Gemini embed<br/>768-dim"]
   end
   EM --> SEED[("Seed<br/>vectors.json")]
   EM --> LIVE[("Supabase<br/>kb_chunks")]
@@ -115,13 +115,13 @@ Defined once in `lib/kb/chunk.ts` and used both at build time (seed manuals) and
 |-----------|-------|--------|
 | Boundary | Markdown headings | Each chunk covers one coherent topic |
 | Title prefix | document `# Title` | An isolated section still knows which manual it belongs to |
-| Max size | ~900 chars (~220 tokens) | Stays inside MiniLM's effective window |
+| Max size | ~900 chars (~220 tokens) | Keeps each chunk to a focused, single-topic passage |
 | Overlap | ~150 chars | An answer that straddles a boundary is never lost |
 | Min size | 80 chars | Tiny fragments merge into a neighbour instead of becoming noise |
 
 **Why not fixed-size chunks?** A blind every-N-characters split would cut a torque table or a numbered procedure in half, and a single embedding would then blur two unrelated ideas — retrieval returns a fragment that reads as noise. Heading-anchored chunks keep each vector about *one thing* (higher precision), the size cap keeps each chunk inside the model's window (sharper meaning), the overlap preserves continuity, and the title prefix preserves global context.
 
-- **Embedding model:** `Xenova/all-MiniLM-L6-v2` via Transformers.js — runs **on the server with no API key**, 384-dim normalized vectors.
+- **Embedding model:** `gemini-embedding-001` (Google, free tier) over plain HTTP — **768-dim**, with retrieval task types (`RETRIEVAL_DOCUMENT` for chunks, `RETRIEVAL_QUERY` for questions). No native runtime, so it runs on any serverless host.
 - **Retrieval:** cosine similarity over all chunks (seed + added); the top six become the only context, and the model is told to say it doesn't know rather than guess.
 - **Persistence:** seed chunks ship in `lib/kb/vectors.json` (rebuild with `npm run build:kb`); knowledge you add at runtime is stored in the Supabase `kb_chunks` table, with an in-memory fallback if Supabase is unavailable.
 
@@ -154,7 +154,7 @@ This works on localhost and on Vercel with **no extra SQL and no public table ac
 Designed so a live demo never dead-ends:
 
 - **Rate limits** — every model call (extraction, agent, answers) retries on the Gemini failover when Groq returns 429 or a server error (`lib/llm.ts`).
-- **No API key** — extraction falls back to keyword rules and answers return the closest chunk verbatim; retrieval still works because embeddings run locally. Speech-to-text returns a clear 503 telling you to type instead.
+- **Degraded mode** — without a language model, extraction falls back to keyword rules and answers return the closest chunk; if embeddings are unavailable, a keyword search backs up retrieval so questions still return relevant passages. Speech-to-text returns a clear 503 telling you to type instead.
 - **Health & banner** — `/api/health` reports which capabilities are live, and a banner appears automatically in a degraded mode.
 - **Microphone & network errors** — blocked/missing mics and failed requests show a clear inline message instead of failing silently.
 
@@ -175,7 +175,7 @@ Designed so a live demo never dead-ends:
 | App | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 |
 | Speech-to-text | Groq Whisper (`whisper-large-v3-turbo`) |
 | Language models | Groq `gpt-oss-120b` / `llama-3.3-70b` / `llama-3.1-8b` · Gemini `2.5-flash-lite` failover · Vercel AI SDK |
-| Embeddings | Transformers.js `all-MiniLM-L6-v2` (local, no key) |
+| Embeddings | Google `gemini-embedding-001`, 768-dim (free tier, HTTP) |
 | Data & realtime | Supabase Postgres + Broadcast |
 | Offline | Dexie.js (IndexedDB) |
 | Speech-out | Browser Web Speech API |
@@ -217,7 +217,7 @@ cp .env.example .env.local
 #    NEXT_PUBLIC_SUPABASE_URL              from Supabase project settings
 #    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  from Supabase project settings
 #    SUPABASE_SECRET_KEY                   from Supabase project settings
-#    GOOGLE_GENERATIVE_AI_API_KEY          optional (failover)
+#    GOOGLE_GENERATIVE_AI_API_KEY          required (embeddings + LLM failover)
 
 # 3. create tables (paste supabase/schema.sql into the Supabase SQL editor)
 
@@ -237,7 +237,7 @@ Open <http://localhost:3000> (worker) and <http://localhost:3000/dashboard> (sup
 1. Push the repo to GitHub and **Import Project** in Vercel.
 2. Add the same environment variables (from `.env.local`) in **Project → Settings → Environment Variables**.
 3. Run `supabase/schema.sql` once in the Supabase SQL editor (creates tables + enables row-level security).
-4. Deploy. The API routes already set `runtime = "nodejs"` and `maxDuration = 60`, and `next.config.ts` marks the embedding packages as server-external, so the local MiniLM model runs on serverless. The model is cached to `/tmp` on the first request, so the very first `/api/ask` after a cold start takes a few seconds, then it's fast.
+4. Deploy. The AI routes set `runtime = "nodejs"` and `maxDuration = 60`. Embeddings and language models are plain HTTP calls (no native binaries), so everything runs on Vercel's serverless functions with no extra configuration.
 5. (Recommended) Add a scheduled ping (Vercel Cron or a GitHub Action) every few days so the free Supabase project doesn't pause after a week idle.
 
 ### Environment variables
@@ -248,7 +248,7 @@ Open <http://localhost:3000> (worker) and <http://localhost:3000/dashboard> (sup
 | `NEXT_PUBLIC_SUPABASE_URL` | client + server | Yes |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | client (realtime) | Yes |
 | `SUPABASE_SECRET_KEY` | server only — DB reads/writes | Yes |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | server — Gemini failover | Optional |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | server — embeddings (RAG) + Gemini failover | Yes |
 
 ---
 

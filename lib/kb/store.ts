@@ -144,6 +144,22 @@ export async function searchKnowledge(queryVector: number[], topK = 6): Promise<
   return scored.map((item) => item.chunk);
 }
 
+export async function lexicalSearch(query: string, topK = 6): Promise<ScoredChunk[]> {
+  const terms = query.toLowerCase().match(/[a-z0-9-]+/g) ?? [];
+  if (terms.length === 0) return [];
+  const all = await getAllChunks();
+  return all
+    .map((chunk) => {
+      const haystack = `${chunk.heading} ${chunk.text}`.toLowerCase();
+      let hits = 0;
+      for (const term of terms) if (haystack.includes(term)) hits += 1;
+      return { chunk, score: hits / terms.length };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
+}
+
 export async function addDocument(source: string, content: string): Promise<KbChunk[]> {
   const records = chunkDocument(source, content);
   if (records.length === 0) return [];

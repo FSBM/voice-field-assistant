@@ -63,6 +63,7 @@ export async function logActivity(
 ): Promise<void> {
   try {
     await getSupabaseAdmin().from("activity_log").insert({ kind, transcript, detail });
+    await broadcastWorkOrdersChanged({ kind });
   } catch {
     return;
   }

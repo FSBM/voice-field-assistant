@@ -14,7 +14,7 @@ const SMALL = { size: 13, strokeWidth: 1.75 } as const;
 
 const STACK = [
   { group: "Frontend", items: ["Next.js 16 (App Router)", "React 19 + TypeScript", "Tailwind v4", "Dexie (IndexedDB)"] },
-  { group: "AI", items: ["Groq Whisper, speech to text", "gpt-oss + Llama, extract and agent", "Transformers.js, MiniLM embeddings", "Web Speech API, spoken replies"] },
+  { group: "AI", items: ["Groq Whisper, speech to text", "gpt-oss + Llama, extract and agent", "Gemini embeddings, free tier", "Web Speech API, spoken replies"] },
   { group: "Data", items: ["Supabase Postgres", "Supabase Realtime", "Knowledge store: seed + kb_chunks", "In-memory cosine retrieval"] },
   { group: "Hosting", items: ["Vercel, single deploy", "100% free tiers", "No paid NLP APIs", "Public URL + GitHub"] },
 ];
@@ -24,7 +24,7 @@ const MODELS = [
   { id: "openai/gpt-oss-120b", job: "Extraction", provider: "Groq", note: "Turns the transcript into a work order, validated field by field against a Zod schema." },
   { id: "llama-3.3-70b-versatile", job: "Voice agent", provider: "Groq", note: "Tool calling to create, update, or close orders, capped at five reasoning steps." },
   { id: "llama-3.1-8b-instant", job: "Grounded answers", provider: "Groq", note: "Fast model that answers only from the retrieved manual chunks, so replies stay short." },
-  { id: "Xenova/all-MiniLM-L6-v2", job: "Embeddings", provider: "Transformers.js", note: "Runs on the server with no API key. Produces 384-dimension normalized vectors." },
+  { id: "gemini-embedding-001", job: "Embeddings", provider: "Google", note: "Free embeddings API over plain HTTP. Produces 768-dimension vectors with retrieval task types." },
   { id: "gemini-2.5-flash-lite", job: "Failover", provider: "Google", note: "Automatic backup for extraction, agent, and answers when Groq is rate-limited." },
 ];
 
@@ -37,6 +37,7 @@ const ROUTES = [
   { method: "POST", path: "/api/knowledge", body: "md file, text, or audio", returns: "{ source, count, added }", note: "Chunk, embed, and store new knowledge." },
   { method: "POST", path: "/api/knowledge/search", body: "{ query }", returns: "{ results }", note: "Ranked chunks with scores, no model call." },
   { method: "GET", path: "/api/work-orders", body: "none", returns: "{ orders }", note: "List the 50 most recent work orders." },
+  { method: "GET", path: "/api/activity", body: "none", returns: "{ activity }", note: "Recent voice transcripts for the dashboard." },
   { method: "GET", path: "/api/health", body: "none", returns: "{ ok, llm, stt, supabase, kb }", note: "Liveness plus which capabilities are configured." },
 ];
 
@@ -56,7 +57,7 @@ const KB_SCHEMA = [
   { field: "chunk_index", type: "int", note: "Position of the chunk within its document." },
   { field: "heading", type: "text", note: "The section heading the chunk sits under." },
   { field: "text", type: "text", note: "The chunk content that gets embedded." },
-  { field: "embedding", type: "jsonb", note: "384 floats from MiniLM, used for cosine search." },
+  { field: "embedding", type: "jsonb", note: "768 floats from Gemini, used for cosine search." },
 ];
 
 const FILEMAP = [
@@ -110,7 +111,7 @@ export default function DocsPage() {
             server and a fallback for every model so a demo never dead-ends.
           </Lead>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            {["Next.js", "TypeScript", "Groq Whisper", "gpt-oss + Llama", "MiniLM retrieval", "Supabase", "Web Speech"].map((t) => (
+            {["Next.js", "TypeScript", "Groq Whisper", "gpt-oss + Llama", "Gemini retrieval", "Supabase", "Web Speech"].map((t) => (
               <Tag key={t}>{t}</Tag>
             ))}
           </div>
@@ -127,7 +128,7 @@ export default function DocsPage() {
               <FlowNode tone="info" icon={<Mic {...ICON} />} title="Field worker" caption="MediaRecorder, webm clip" />
               <FlowNode icon={<Server {...ICON} />} title="Next.js API routes" caption="process, ask, agent, knowledge" />
               <FlowNode tone="recovery" icon={<BrainCircuit {...ICON} />} title="Groq, Gemini failover" caption="Whisper, gpt-oss, Llama" />
-              <FlowNode tone="info" icon={<Cpu {...ICON} />} title="Transformers.js" caption="MiniLM embeddings, cosine search" />
+              <FlowNode tone="info" icon={<Cpu {...ICON} />} title="Gemini embeddings" caption="768-dim, cosine search" />
               <FlowNode tone="healthy" icon={<Database {...ICON} />} title="Supabase" caption="work_orders, kb_chunks, Realtime" />
               <FlowNode icon={<Gauge {...ICON} />} title="Supervisor dashboard" caption="live work orders" />
             </Pipeline>
@@ -158,12 +159,12 @@ export default function DocsPage() {
               <Pipeline>
                 <FlowNode tone="info" icon={<Mic {...SMALL} />} title="Ask" />
                 <FlowNode icon={<FileText {...SMALL} />} title="Transcribe" />
-                <FlowNode icon={<BookText {...SMALL} />} title="Retrieve" caption="MiniLM, cosine" />
+                <FlowNode icon={<BookText {...SMALL} />} title="Retrieve" caption="Gemini, cosine" />
                 <FlowNode tone="healthy" icon={<MessageSquare {...SMALL} />} title="Answer" caption="grounded" />
               </Pipeline>
               <Steps
                 items={[
-                  <>The question is transcribed, then embedded locally with <InlineCode>all-MiniLM-L6-v2</InlineCode> into a 384-dimension vector.</>,
+                  <>The question is transcribed, then embedded with <InlineCode>gemini-embedding-001</InlineCode> into a 768-dimension vector.</>,
                   <>Cosine similarity ranks every chunk, seed and added, and keeps the top six.</>,
                   <>Those chunks become the only context for <InlineCode>llama-3.1-8b-instant</InlineCode>, which is told to answer from context alone.</>,
                   <>The answer, its sources, and the chunks it used return to the worker and are spoken back.</>,
@@ -236,8 +237,8 @@ export default function DocsPage() {
                   <Cpu {...ICON} />
                 </span>
                 <p className="text-[12px] leading-relaxed text-ink-2">
-                  Each chunk is embedded with <InlineCode>all-MiniLM-L6-v2</InlineCode> on the server, so the
-                  knowledge base never leaves the deploy and no embedding API is billed. Seed chunks ship in
+                  Each chunk is embedded with <InlineCode>gemini-embedding-001</InlineCode> over plain HTTP on the
+                  free Gemini tier — no native runtime, so it works on any serverless host. Seed chunks ship in
                   <InlineCode>vectors.json</InlineCode>; anything you add is embedded the same way.
                 </p>
               </div>
@@ -271,7 +272,7 @@ export default function DocsPage() {
               </li>
               <li className="flex items-start gap-2.5 px-4 py-3">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border border-info-line bg-info-bg text-info"><Type {...SMALL} /></span>
-                <p className="text-[12px] leading-relaxed text-ink-2"><span className="text-ink-1">No key.</span> Extraction falls back to keyword rules, and answers return the closest chunk verbatim. Retrieval still works because embeddings run locally.</p>
+                <p className="text-[12px] leading-relaxed text-ink-2"><span className="text-ink-1">Degraded.</span> Without a language model, extraction falls back to keyword rules and answers return the closest chunk. If embeddings are unavailable, a keyword search backs up retrieval so questions still return relevant passages.</p>
               </li>
               <li className="flex items-start gap-2.5 px-4 py-3">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border border-line-2 bg-surface-2 text-ink-2"><ShieldCheck {...SMALL} /></span>
